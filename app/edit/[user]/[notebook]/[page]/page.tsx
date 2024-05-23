@@ -15,7 +15,6 @@ import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 import { CommandMenu } from "@/components/ui/command-menu";
 import TeamSwitcher from "@/components/ui/team-switcher";
 import { UserNav } from "@/components/ui/user-nav";
-import { Search } from "@/components/ui/search";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Editor from "@/components/ui/editor";
 import Tree from "@/components/ui/tree";
