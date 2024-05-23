@@ -56,8 +56,11 @@ export interface TreeProps
   notebook: tree;
 }
 
-const Tree = React.forwardRef<HTMLUListElement, TreeProps>(
-  ({ notebook, ...props }, ref) => (
+const Tree = React.forwardRef<HTMLUListElement, TreeProps>(function Tree(
+  { notebook, ...props },
+  ref,
+) {
+  return (
     <ul ref={ref} {...props}>
       {notebook.map((item) =>
         Object.hasOwn(item, "subnotes") ? (
@@ -74,7 +77,7 @@ const Tree = React.forwardRef<HTMLUListElement, TreeProps>(
         ),
       )}
     </ul>
-  ),
-);
+  );
+});
 
 export default Tree;
