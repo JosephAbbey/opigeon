@@ -1,4 +1,4 @@
 {
-  "tailwindFunctions": ["clsx", "cn"],
+  "tailwindFunctions": ["clsx", "cn", "cva"],
   "plugins": ["prettier-plugin-sort-imports", "prettier-plugin-tailwindcss"]
 }

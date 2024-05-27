@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Mail } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import React from "react";
 import { cn } from "@/lib/utils";
 

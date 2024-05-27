@@ -20,10 +20,21 @@ import Editor from "@/components/ui/editor";
 import Tree from "@/components/ui/tree";
 import { Folder, Notebook, NotebookPen, TestTube } from "lucide-react";
 
+function BreadcrumbElement(props: React.ComponentProps<typeof BreadcrumbPage>) {
+  return (
+    <>
+      <BreadcrumbSeparator />
+      <BreadcrumbItem>
+        <BreadcrumbPage {...props} />
+      </BreadcrumbItem>
+    </>
+  );
+}
+
 export default function Page({
   params,
 }: {
-  params: { user: string; notebook: string; page: string };
+  params: { user: string; path: string[] };
 }) {
   return (
     <>
@@ -35,22 +46,13 @@ export default function Page({
             <Breadcrumb className="mx-auto font-bold">
               <BreadcrumbList>
                 <BreadcrumbItem>
-                  <BreadcrumbLink href={`/view/${params.user}`}>
+                  <BreadcrumbLink href={`/user/${params.user}`}>
                     {params.user}
                   </BreadcrumbLink>
                 </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbLink
-                    href={`/view/${params.user}/${params.notebook}`}
-                  >
-                    {params.notebook}
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>{params.page}</BreadcrumbPage>
-                </BreadcrumbItem>
+                {params.path.map((p) => (
+                  <BreadcrumbElement key={p}>{p}</BreadcrumbElement>
+                ))}
               </BreadcrumbList>
             </Breadcrumb>
             <div className="ml-auto flex items-center space-x-4">
@@ -67,23 +69,23 @@ export default function Page({
                   notebook={[
                     {
                       title: "Test",
-                      path: "test",
+                      path: "JosephAbbey/MyNotes/Test",
                       icon: <TestTube />,
                     },
                     {
                       title: "Folder",
-                      path: "folder",
+                      path: "JosephAbbey/MyNotes/Folder",
                       icon: <Folder />,
 
                       subnotes: [
                         {
                           title: "Subnote",
-                          path: "folder/subnote",
+                          path: "JosephAbbey/MyNotes/Folder/Subnote",
                           icon: <Notebook />,
                         },
                         {
                           title: "Subnote 1",
-                          path: "folder/subnote_1",
+                          path: "JosephAbbey/MyNotes/Folder/Subnote_1",
                           icon: <NotebookPen />,
                         },
                       ],
@@ -94,9 +96,7 @@ export default function Page({
             </ResizablePanel>
             <ResizableHandle withHandle />
             <ResizablePanel defaultSize={75}>
-              <ScrollArea className="h-full p-4">
-                <Editor />
-              </ScrollArea>
+              <Editor path={`${params.user}/${params.path.join("/")}`} />
             </ResizablePanel>
           </ResizablePanelGroup>
         </div>

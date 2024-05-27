@@ -1,9 +1,10 @@
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
-import { Inter } from "next/font/google";
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 
 import "@/styles/globals.css";
+import { ThemedClerkProvider } from "@/components/ThemedClerkProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -24,15 +25,16 @@ export default function RootLayout({
         attribute="class"
         defaultTheme="system"
         enableSystem
-        disableTransitionOnChange
         value={{
           dark: "mocha",
           light: "latte",
         }}
       >
         <body className={inter.className}>
-          {children}
-          <Toaster />
+          <ThemedClerkProvider>
+            {children}
+            <Toaster />
+          </ThemedClerkProvider>
         </body>
       </ThemeProvider>
     </html>

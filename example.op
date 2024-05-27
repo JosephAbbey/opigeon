@@ -1,0 +1,23 @@
+[
+  {
+    type: "heading",
+    id: "1",
+    content: "Heading",
+  },
+  {
+    type: "paragraph",
+    id: "2",
+    content: "Testing...",
+  },
+  {
+    type: "paragraph",
+    id: "3",
+    content: "Testing...",
+  },
+  {
+    type: "code",
+    id: "4",
+    language: "typescript",
+    content: "const a = 1;\nconsole.log(a);",
+  },
+]

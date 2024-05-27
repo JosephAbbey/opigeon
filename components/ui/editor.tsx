@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import {
   ContextMenu,
   ContextMenuCheckboxItem,
@@ -15,18 +16,20 @@ import {
   ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { toast } from "sonner";
-import { Shadows_Into_Light, Inter } from "next/font/google";
-import localFont from "next/font/local";
-import React from "react";
+import { DragArea, Dragable } from "@/components/ui/rearange";
+import { cn } from "@/lib/utils";
 import * as Monaco from "@monaco-editor/react";
-import { getHighlighter } from "shiki/bundle/full";
 import { shikiToMonaco } from "@shikijs/monaco";
 import { useTheme } from "next-themes";
-import { cn } from "@/lib/utils";
+import { Inter, Shadows_Into_Light } from "next/font/google";
+import localFont from "next/font/local";
+import React from "react";
+import { getHighlighter } from "shiki/bundle/full";
+import { toast } from "sonner";
 import * as Tldraw from "tldraw";
-
 import "@/styles/tldraw.css";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { RotateCwIcon, SaveIcon } from "lucide-react";
 
 const shadows_into_light = Shadows_Into_Light({
   weight: "400",
@@ -37,31 +40,39 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
-export function EditableHeading() {
-  const [content, setContent] = React.useState("Test <b>heading</b>");
-
+function EditableHeading({
+  content,
+  onChange,
+}: {
+  content: string;
+  onChange: (content: string) => void;
+}) {
   return (
     <h1
-      className="mx-4 text-pretty rounded-sm p-2 text-3xl ring-ring focus:border-blue-400 focus:outline-none focus:ring"
+      className="mx-4 text-pretty rounded-sm p-2 text-3xl ring-ring focus:outline-none focus:ring"
       contentEditable
-      onBlur={(e) => setContent(e.currentTarget.innerHTML)}
+      onBlur={(e) => onChange(e.currentTarget.innerHTML)}
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
       dangerouslySetInnerHTML={{ __html: content }}
-    ></h1>
+    />
   );
 }
 
-export function EditableParagraph() {
-  const [content, setContent] = React.useState(
-    "Lorem ipsum dolor sit amet, consectetur adipisicing elit. Accusamus, quaerat odit autem eligendi numquam quo. Porro sequi qui esse ipsam, id quod quis aut deleniti eius repellendus velit harum iure?",
-  );
-
+function EditableParagraph({
+  content,
+  onChange,
+}: {
+  content: string;
+  onChange: (content: string) => void;
+}) {
   return (
     <p
-      className="mx-4 rounded-sm p-2 ring-ring focus:border-blue-400 focus:outline-none focus:ring"
+      className="mx-4 rounded-sm p-2 ring-ring focus:outline-none focus:ring"
       contentEditable
-      onBlur={(e) => setContent(e.currentTarget.innerHTML)}
+      onBlur={(e) => onChange(e.currentTarget.innerHTML)}
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: <explanation>
       dangerouslySetInnerHTML={{ __html: content }}
-    ></p>
+    />
   );
 }
 
@@ -279,11 +290,22 @@ const highlighter = getHighlighter({
     "zig",
   ],
 });
-export function EditableCode() {
+function EditableCode({
+  content,
+  onChange,
+  language,
+  onChangeLanguage,
+}: {
+  content: string;
+  onChange: (content: string) => void;
+  language: string;
+  onChangeLanguage: (language: string) => void;
+}) {
   const monaco = Monaco.useMonaco();
   const { resolvedTheme } = useTheme();
-  const [language, setLanguage] = React.useState("typescript");
-  const [content, setContent] = React.useState("// Some code");
+  const [code, setCode] = React.useState("");
+
+  React.useEffect(() => setCode(content), [content]);
 
   const highlightLoadCallback = React.useCallback(
     (h: Awaited<typeof highlighter>) => {
@@ -300,7 +322,6 @@ export function EditableCode() {
       highlighter.then(highlightLoadCallback);
       monaco.languages.register({ id: "typescript" });
       monaco.languages.typescript.javascriptDefaults.setEagerModelSync(true);
-      console.log("here is the monaco instance:", monaco);
     }
   }, [monaco, highlightLoadCallback]);
 
@@ -313,16 +334,19 @@ export function EditableCode() {
   }, [resolvedTheme, monaco]);
 
   React.useEffect(() => {
-    monaco?.editor?.setModelLanguage(monaco!.editor!.getModels()[0], language);
+    monaco?.editor?.setModelLanguage(monaco?.editor?.getModels()[0], language);
   }, [language, monaco]);
 
   return (
     <div className="flex justify-center">
-      <div className="relative m-8 w-0 max-w-screen-md flex-grow rounded-md p-2 pt-4 ring-ring focus-within:ring">
+      <div
+        className="relative m-8 w-0 max-w-screen-md flex-grow rounded-md p-2 pt-4 ring-ring focus-within:ring"
+        onBlur={() => onChange(code)}
+      >
         <input
           className="absolute z-10 -translate-y-1/2 translate-x-2 border border-border bg-mantle pl-1 text-sm outline-ring focus-visible:outline"
           value={language}
-          onInput={(e) => setLanguage(e.currentTarget.value)}
+          onInput={(e) => onChangeLanguage(e.currentTarget.value)}
         />
         <Monaco.Editor
           className={"rounded-sm border p-1 pt-4"}
@@ -335,9 +359,10 @@ export function EditableCode() {
           theme={
             resolvedTheme === "dark" ? "catppuccin-mocha" : "catppuccin-latte"
           }
-          value={content}
-          onChange={(e) => setContent(e ?? "")}
+          value={code}
+          onChange={(e) => setCode(e ?? "")}
           defaultLanguage={language}
+          loading={<RotateCwIcon className="h-12 w-12 animate-spin" />}
         />
       </div>
     </div>
@@ -368,52 +393,48 @@ Tldraw.DefaultColorThemePalette.lightMode["light-red"].solid =
 Tldraw.DefaultColorThemePalette.lightMode["light-violet"].solid =
   "rgb(var(--ctp-lavender))";
 
-const focusedEditorContext = React.createContext(
-  {} as {
-    focusedEditor: Tldraw.Editor | null;
-    setFocusedEditor: (id: Tldraw.Editor | null) => void;
-  },
-);
-function blurEditor(editor: Tldraw.Editor) {
-  editor.selectNone();
-  editor.setCurrentTool("hand");
-  editor.updateInstanceState({ isFocused: false });
-}
-export function EditableDiagram() {
-  const { focusedEditor, setFocusedEditor } =
-    React.useContext(focusedEditorContext);
-  const [editor, setEditor] = React.useState<Tldraw.Editor>();
+function EditableDiagram({
+  content,
+  onChange,
+}: {
+  content: Tldraw.StoreSnapshot<Tldraw.TLRecord> | null;
+  onChange: (content: Tldraw.StoreSnapshot<Tldraw.TLRecord>) => void;
+}) {
+  const [store] = React.useState(() =>
+    Tldraw.createTLStore({ shapeUtils: Tldraw.defaultShapeUtils }),
+  );
+  React.useLayoutEffect(() => {
+    if (content) {
+      store.loadSnapshot(content);
+    }
+  }, [store, content]);
 
   return (
     <div className={cn("flex justify-center", inter.className)}>
-      <div className="m-8 w-0 max-w-screen-md flex-grow rounded-md p-2 ring-ring focus-within:ring">
+      <div
+        className="m-8 w-0 max-w-screen-md flex-grow rounded-md p-2 ring-ring focus-within:ring"
+        onBlur={() => onChange(store.getSnapshot())}
+      >
         <div
           style={{ height: "60vh" }}
-          className="relative isolate w-full rounded-sm border"
-          onFocus={() => {
-            if (!editor) return;
-            if (focusedEditor && focusedEditor !== editor) {
-              blurEditor(focusedEditor);
-            }
-            editor.updateInstanceState({ isFocused: true });
-            setFocusedEditor(editor);
-          }}
+          className="isolate w-full rounded-sm border"
         >
           <Tldraw.Tldraw
             autoFocus={false}
-            hideUi={focusedEditor !== editor}
             components={{
               HelpMenu: null,
               NavigationPanel: null,
               MainMenu: null,
               PageMenu: null,
+              DebugMenu: null,
+              DebugPanel: null,
             }}
             onMount={(editor) => {
-              setEditor(editor);
               editor.setCurrentTool("hand");
               editor.user.updateUserPreferences({ edgeScrollSpeed: 0 });
               editor.updateInstanceState({ isDebugMode: false });
             }}
+            store={store}
           />
         </div>
       </div>
@@ -421,84 +442,235 @@ export function EditableDiagram() {
   );
 }
 
-export default function Editor() {
-  const [focusedEditor, setFocusedEditor] =
-    React.useState<Tldraw.Editor | null>(null);
+export default function Editor({ path }: { path: string }) {
+  const [content, setContent] = React.useState<
+    (
+      | {
+          type: "heading" | "paragraph";
+          id: string;
+          content: string;
+        }
+      | {
+          type: "code";
+          id: string;
+          language: string;
+          content: string;
+        }
+      | {
+          type: "diagram";
+          id: string;
+          content: Tldraw.StoreSnapshot<Tldraw.TLRecord> | null;
+        }
+    )[]
+  >([
+    // {
+    //   type: "heading",
+    //   id: "1",
+    //   content: "The Unexpected Benefits of Birdwatching",
+    // },
+    // {
+    //   type: "paragraph",
+    //   id: "2",
+    //   content:
+    //     "The sun, a radiant orb of incandescent plasma, bathed the verdant meadow in its golden rays. Birdsong filled the air, a melodious symphony orchestrated by nature's finest musicians. A gentle breeze rustled the leaves of the trees, their emerald canopies swaying rhythmically in the summer breeze. Butterflies, their wings adorned with intricate patterns, flitted from flower to flower, their delicate forms a testament to the beauty of the natural world. In the distance, a winding river glistened like a silver ribbon, its waters reflecting the azure sky above. Fluffy white clouds drifted lazily by, casting fleeting shadows upon the landscape below. The scent of wildflowers, a heady blend of sweet and earthy aromas, permeated the air.",
+    // },
+    // {
+    //   type: "paragraph",
+    //   id: "3",
+    //   content:
+    //     "Birdwatching might seem like a leisurely activity for retirees, but there's more to it than meets the eye. Not only is it a fantastic way to connect with nature, but studies have shown that observing birds can bring a surprising range of benefits. From reducing stress to boosting creativity, spending time with our feathered friends can have a positive impact on our overall well-being.",
+    // },
+    // {
+    //   type: "paragraph",
+    //   id: "5",
+    //   content:
+    //     "In the next section, we'll delve deeper into the specific ways birdwatching can enhance your life. We'll explore how focusing on these colorful creatures can promote mindfulness, spark a sense of wonder, and even strengthen your sense of community.",
+    // },
+    // {
+    //   type: "code",
+    //   id: "4",
+    //   language: "python",
+    //   content:
+    //     '# List of bird names\nbird_names = ["Robin", "Blue Jay", "Goldfinch", "Hummingbird"]\n\n# Looping through the bird names\nfor bird in bird_names:\n  print(f"The beautiful {bird} is a common sight in many backyards.")\n\n# Additional information (optional)\nprint("Birdwatching is a great way to learn about these fascinating creatures and their unique behaviors.")',
+    // },
+    // {
+    //   type: "paragraph",
+    //   id: "6",
+    //   content:
+    //     "This code defines a list <i>bird_names</i> containing several bird species. It then iterates through the list using a <i>for</i> loop. Inside the loop, an f-string is used to create a descriptive sentence for each bird. Finally, an optional line can be added to provide some additional information about birdwatching.",
+    // },
+    // {
+    //   type: "diagram",
+    //   id: "7",
+    //   content: null,
+    // },
+  ]);
+  const [loading, setLoading] = React.useState(true);
 
-  return (
-    <ContextMenu>
-      <ContextMenuTrigger className="p-6">
-        <focusedEditorContext.Provider
-          value={{ focusedEditor, setFocusedEditor }}
-        >
-          <div
-            style={{
-              margin: 20,
-              display: "flex",
-              flexDirection: "column",
-              gap: 20,
-            }}
-            onPointerDown={() => {
-              if (!focusedEditor) return;
-              blurEditor(focusedEditor);
-              setFocusedEditor(null);
-            }}
-          >
-            <form className={shadows_into_light.className}>
-              <EditableHeading />
-              <EditableParagraph />
-              <EditableParagraph />
-              <EditableCode />
-              <EditableDiagram />
-            </form>
-          </div>
-        </focusedEditorContext.Provider>
-      </ContextMenuTrigger>
-      <ContextMenuContent className="w-64">
-        <ContextMenuItem inset onClick={() => toast("Toast!")}>
-          Toast
-        </ContextMenuItem>
-        <ContextMenuItem inset>
-          Back
-          <ContextMenuShortcut>⌘[</ContextMenuShortcut>
-        </ContextMenuItem>
-        <ContextMenuItem inset disabled>
-          Forward
-          <ContextMenuShortcut>⌘]</ContextMenuShortcut>
-        </ContextMenuItem>
-        <ContextMenuItem inset>
-          Reload
-          <ContextMenuShortcut>⌘R</ContextMenuShortcut>
-        </ContextMenuItem>
-        <ContextMenuSub>
-          <ContextMenuSubTrigger inset>More Tools</ContextMenuSubTrigger>
-          <ContextMenuSubContent className="w-48">
-            <ContextMenuItem>
-              Save Page As...
-              <ContextMenuShortcut>⇧⌘S</ContextMenuShortcut>
-            </ContextMenuItem>
-            <ContextMenuItem>Create Shortcut...</ContextMenuItem>
-            <ContextMenuItem>Name Window...</ContextMenuItem>
-            <ContextMenuSeparator />
-            <ContextMenuItem>Developer Tools</ContextMenuItem>
-          </ContextMenuSubContent>
-        </ContextMenuSub>
-        <ContextMenuSeparator />
-        <ContextMenuCheckboxItem checked>
-          Show Bookmarks Bar
-          <ContextMenuShortcut>⌘⇧B</ContextMenuShortcut>
-        </ContextMenuCheckboxItem>
-        <ContextMenuCheckboxItem>Show Full URLs</ContextMenuCheckboxItem>
-        <ContextMenuSeparator />
-        <ContextMenuRadioGroup value="pedro">
-          <ContextMenuLabel inset>People</ContextMenuLabel>
+  React.useEffect(() => {
+    const loaded = window.localStorage.getItem(path);
+    if (loaded) setContent(JSON.parse(loaded).content);
+    setLoading(false);
+  }, [path]);
+
+  React.useEffect(() => {
+    if (!loading) {
+      window.localStorage.setItem(
+        path,
+        JSON.stringify({ updated: Date.now(), content }),
+      );
+    }
+  }, [path, content, loading]);
+
+  const [saveLoading, setSaveLoading] = React.useState(false);
+  React.useEffect(() => {
+    if (saveLoading) {
+      setTimeout(() => setSaveLoading(false), 3000);
+    }
+  }, [saveLoading]);
+
+  return loading ? (
+    <div className="flex h-full w-full items-center justify-center">
+      <RotateCwIcon className="h-12 w-12 animate-spin" />
+    </div>
+  ) : (
+    <ScrollArea className="h-full p-4">
+      <ContextMenu>
+        <ContextMenuTrigger>
+          <form>
+            <Button
+              size="icon"
+              className="fixed right-8"
+              disabled={saveLoading}
+              onClick={() => {
+                setSaveLoading(true);
+                console.log(content);
+              }}
+            >
+              {saveLoading ? (
+                <RotateCwIcon className="h-4 w-4 animate-spin" />
+              ) : (
+                <SaveIcon className="h-4 w-4" />
+              )}
+            </Button>
+            <div
+              style={{
+                margin: 20,
+                display: "flex",
+                flexDirection: "column",
+                gap: 20,
+              }}
+            >
+              <div className={shadows_into_light.className}>
+                <DragArea
+                  onDragDrop={(from, to) => {
+                    const clone = Array.from(content);
+                    const item = clone[from];
+                    clone.splice(from, 1);
+                    clone.splice(to, 0, item);
+                    setContent(clone);
+                  }}
+                >
+                  {content.map((item, i) => (
+                    <Dragable index={i} key={item.id}>
+                      {item.type === "heading" ? (
+                        <EditableHeading
+                          content={item.content}
+                          onChange={(c) => {
+                            const clone = Array.from(content);
+                            clone[i].content = c;
+                            setContent(clone);
+                          }}
+                        />
+                      ) : item.type === "paragraph" ? (
+                        <EditableParagraph
+                          content={item.content}
+                          onChange={(c) => {
+                            const clone = Array.from(content);
+                            clone[i].content = c;
+                            setContent(clone);
+                          }}
+                        />
+                      ) : item.type === "code" ? (
+                        <EditableCode
+                          content={item.content}
+                          onChange={(c) => {
+                            const clone = Array.from(content);
+                            clone[i].content = c;
+                            setContent(clone);
+                          }}
+                          language={item.language}
+                          onChangeLanguage={(l) => {
+                            const clone = Array.from(content);
+                            (clone[i] as { language: string }).language = l;
+                            setContent(clone);
+                          }}
+                        />
+                      ) : item.type === "diagram" ? (
+                        <EditableDiagram
+                          content={item.content}
+                          onChange={(c) => {
+                            const clone = Array.from(content);
+                            clone[i].content = c;
+                            setContent(clone);
+                          }}
+                        />
+                      ) : (
+                        <div />
+                      )}
+                    </Dragable>
+                  ))}
+                </DragArea>
+              </div>
+            </div>
+          </form>
+        </ContextMenuTrigger>
+        <ContextMenuContent className="w-64">
+          <ContextMenuItem inset onClick={() => toast("Toast!")}>
+            Toast
+          </ContextMenuItem>
+          <ContextMenuItem inset>
+            Back
+            <ContextMenuShortcut>⌘[</ContextMenuShortcut>
+          </ContextMenuItem>
+          <ContextMenuItem inset disabled>
+            Forward
+            <ContextMenuShortcut>⌘]</ContextMenuShortcut>
+          </ContextMenuItem>
+          <ContextMenuItem inset>
+            Reload
+            <ContextMenuShortcut>⌘R</ContextMenuShortcut>
+          </ContextMenuItem>
+          <ContextMenuSub>
+            <ContextMenuSubTrigger inset>More Tools</ContextMenuSubTrigger>
+            <ContextMenuSubContent className="w-48">
+              <ContextMenuItem>
+                Save Page As...
+                <ContextMenuShortcut>⇧⌘S</ContextMenuShortcut>
+              </ContextMenuItem>
+              <ContextMenuItem>Create Shortcut...</ContextMenuItem>
+              <ContextMenuItem>Name Window...</ContextMenuItem>
+              <ContextMenuSeparator />
+              <ContextMenuItem>Developer Tools</ContextMenuItem>
+            </ContextMenuSubContent>
+          </ContextMenuSub>
           <ContextMenuSeparator />
-          <ContextMenuRadioItem value="pedro">
-            Pedro Duarte
-          </ContextMenuRadioItem>
-          <ContextMenuRadioItem value="colm">Colm Tuite</ContextMenuRadioItem>
-        </ContextMenuRadioGroup>
-      </ContextMenuContent>
-    </ContextMenu>
+          <ContextMenuCheckboxItem checked>
+            Show Bookmarks Bar
+            <ContextMenuShortcut>⌘⇧B</ContextMenuShortcut>
+          </ContextMenuCheckboxItem>
+          <ContextMenuCheckboxItem>Show Full URLs</ContextMenuCheckboxItem>
+          <ContextMenuSeparator />
+          <ContextMenuRadioGroup value="pedro">
+            <ContextMenuLabel inset>People</ContextMenuLabel>
+            <ContextMenuSeparator />
+            <ContextMenuRadioItem value="pedro">
+              Pedro Duarte
+            </ContextMenuRadioItem>
+            <ContextMenuRadioItem value="colm">Colm Tuite</ContextMenuRadioItem>
+          </ContextMenuRadioGroup>
+        </ContextMenuContent>
+      </ContextMenu>
+    </ScrollArea>
   );
 }
